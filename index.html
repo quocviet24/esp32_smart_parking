@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 Parking Slot Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 40px;
+    }
+    h1 {
+      color: #333;
+    }
+    .slot {
+      margin-top: 30px;
+    }
+    .led-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+    }
+    label {
+      font-size: 18px;
+      margin-right: 10px;
+      width: 130px;
+      text-align: right;
+    }
+    .led {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background-color: #999;
+      box-shadow: 0 0 10px #555;
+    }
+    .led.on {
+      background-color: green;
+      box-shadow: 0 0 20px green;
+    }
+    .sensor-status {
+      font-size: 16px;
+      margin-top: 5px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Parking Slot Monitor</h1>
+
+  <div class="slot">
+    <div class="led-box">
+      <label>Slot 1 LED:</label>
+      <div id="led1" class="led"></div>
+    </div>
+    <div id="sensor1" class="sensor-status">Sensor: Waiting...</div>
+  </div>
+
+  <div class="slot">
+    <div class="led-box">
+      <label>Slot 2 LED:</label>
+      <div id="led2" class="led"></div>
+    </div>
+    <div id="sensor2" class="sensor-status">Sensor: Waiting...</div>
+  </div>
+
+  <div class="slot">
+    <div class="led-box">
+      <label>Slot 3 LED:</label>
+      <div id="led3" class="led"></div>
+    </div>
+    <div id="sensor3" class="sensor-status">Sensor: Waiting...</div>
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const options = {
+      clean: true,
+      connectTimeout: 4000,
+      clientId: 'web_client_' + Math.floor(Math.random() * 10000),
+      username: 'hivemq.webclient.1753794133472',
+      password: '7gsi1h&FTj:X.RLB60t?',
+    };
+
+    const connectUrl = 'wss://7af0d37789ad4163b239dc54c9c8964c.s1.eu.hivemq.cloud:8884/mqtt';
+    const client = mqtt.connect(connectUrl, options);
+
+    client.on('connect', () => {
+      console.log('✅ MQTT Connected');
+      client.subscribe('esp32/led1');
+      client.subscribe('esp32/sieuam1');
+      client.subscribe('esp32/led2');
+      client.subscribe('esp32/sieuam2');
+      client.subscribe('esp32/led3');
+      client.subscribe('esp32/sieuam3');
+    });
+
+    client.on('message', (topic, message) => {
+      const msg = message.toString();
+      console.log(`📩 Topic: ${topic} | Message: ${msg}`);
+
+      const updateStatus = (ledId, sensorId, msg) => {
+        const led = document.getElementById(ledId);
+        const sensor = document.getElementById(sensorId);
+
+        if (msg === 'on') {
+          led.classList.add('on');
+          sensor.innerText = 'Sensor: Vehicle Detected (<5cm)';
+        } else {
+          led.classList.remove('on');
+          sensor.innerText = 'Sensor: No Vehicle';
+        }
+      };
+
+      if (topic === 'esp32/led1') updateStatus('led1', 'sensor1', msg);
+      if (topic === 'esp32/led2') updateStatus('led2', 'sensor2', msg);
+      if (topic === 'esp32/led3') updateStatus('led3', 'sensor3', msg);
+    });
+
+    client.on('error', (err) => {
+      console.error('❌ MQTT Error:', err);
+    });
+
+    client.on('reconnect', () => {
+      console.log('🔄 Reconnecting...');
+    });
+  </script>
+</body>
+</html>
